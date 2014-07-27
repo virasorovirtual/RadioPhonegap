@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RadioVirtual</title>
+  <meta name="viewport" content="initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="stylesheet" href="css/jquery.mobile-1.2.0.css" />
+  <link rel="stylesheet" href="css/leaflet.css" />
+  <script src="js/jquery-1.8.2.min.js"></script>
+  <script src="js/jquery.mobile-1.2.0.min.js"></script>
+  <script type="text/javascript" src="cordova-2.6.0.js"></script>
+  <script type="text/javascript" src="js/leaflet.js"></script>
+  <script type="text/javascript">
+  //Wait for Cordova to load
+  //
+  document.addEventListener("deviceready", onDeviceReady, false);
+
+  // Cordova is ready
+  //
+  function onDeviceReady() {
+	    console.log('ready');
+  };
+
+  var myMedia = null;
+  var mediaTimer = null;
+  var mediaState = 0;
+  function updateMedia(radioUrl) {
+  	if(myMedia != null) {
+  		myMedia.release();
+  	}
+//     	document.getElementById('audio_title').innerHTML = radioUrl;
+  	myMedia = new Media(radioUrl,
+  				function() { // success callback
+  					console.log("Media instance success.");
+  				},
+  				function() { // error callback
+  					console.log("Media error");
+  				},
+  				function(status) {
+  					///console.log("status: "+status);
+  					mediaState = status;
+  					if(status == Media.MEDIA_NONE) {
+  						console.log("MEDIA_NONE");
+  					} else if(status == Media.MEDIA_STARTING) {
+  						console.log("MEDIA_STARTING");
+  						$.mobile.loading( 'show', {
+  							text: 'buffering..',
+  							textVisible: true,
+  							theme: 'a',
+  							textonly: false,
+  							html: ''
+  					});
+//  				       	document.getElementById('audio_position').innerHTML = 'buffering';
+  						$('#play .ui-btn-text').text("P A U S E");
+  					} else if(status == Media.MEDIA_RUNNING) {
+  						console.log("MEDIA_RUNNING");
+  						$.mobile.loading( 'hide' );
+  						$('#play .ui-btn-text').text("P A U S E");
+  					} else if(status == Media.MEDIA_PAUSED) {
+  						console.log("MEDIA_PAUSED");
+  						$('#play .ui-btn-text').text("STREAM");
+  					} else if(status == Media.MEDIA_STOPPED) {
+  						console.log("MEDIA_STOPPED");
+//  				       	document.getElementById('audio_position').innerHTML = '<3';
+  						$('#play .ui-btn-text').text("STREAM");
+  					} else {
+  						console.log("MEDIA_UNKNOWN");
+  					}
+  				});
+  };
+  function playAudio() {
+  	if(mediaState != Media.MEDIA_STARTING && mediaState != Media.MEDIA_RUNNING) {
+  		myMedia.play();
+  		// Update myMedia position every second
+          if (mediaTimer == null) {
+              mediaTimer = setInterval(function() {
+                  // get myMedia position
+                  myMedia.getCurrentPosition(
+                      // success callback
+                      function(position) {
+                          if (mediaState == 2 && position > -1) {
+//                          	document.getElementById('audio_position').innerHTML = position + '/' + myMedia.getDuration() + ' secs.';
+                          }
+                      },
+                      // error callback
+                      function(e) {
+                          console.log("Error getting pos=" + e);
+//                      	document.getElementById('audio_position').innerHTML = "Error: " + e;
+                      }
+                  );
+              }, 1000);
+          }
+  	} else {
+  		myMedia.pause();
+  	}
+  };
+  function stopAudio() {
+  	myMedia.stop();
+  	clearInterval(mediaTimer);
+  	mediaTimer = null;
+  };
+  function startAudio(streamingUrl) {
+		updateMedia(streamingUrl);
+		playAudio();
+  };
+	function showRadioMap() {
+		// swaragama: -7.775019, 110.375551
+		var map = L.map('map').setView([-28.05356,-56.01883], 13);
+		// add an OpenStreetMap tile layer
+		//L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+		//	maxZoom: 18
+		//	attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+		//}).addTo(map);
+		L.tileLayer('http://otile{s}.mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpeg',
+		{
+			attribution: 'Cortesia de <a href="http://www.mapquest.com/">MapQuest</a> &mdash; Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+			subdomains: '1234',
+			maxZoom: 18
+		}).addTo(map);
+		var swaragamaM = L.marker([-28.05357,-56.01891]).addTo(map);
+		swaragamaM.bindPopup("<b>RadioVirtual</b><br/>Virasoro").openPopup();
+	};
+  </script>
+</head>
+<body>
+
+<div data-role="page" id="main">
+
+	<div data-role="header" data-position="fixed">
+		<h1>Gdor. Virasoro.</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">
+		<h2>VirasoroVirtual.com Radio</h2>
+		<p>Esta es nuestra aplicacion para que puedas escuchar en Vivo nuestra Radio en internet.</p>
+
+    <a href="#" data-role="button" onclick="startAudio('http://173.224.124.217:8160/');">Escuchar</a>
+		<div data-role="collapsible" data-theme="a" data-content-theme="d">
+			<h3>Horarios de transmision</h3>
+			<p>Por el momento nuestra radio solo transmite por internet de 8 a 22 hs. Si deseas auspiciar puedes llamar ó enviar un mensaje al (03756) 15417551</p>
+		</div>
+	</div><!-- /content -->
+
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar">
+			<ul>
+				<li><a href="#main" data-icon="grid" data-transition="flip" data-prefetch class="ui-btn-active ui-state-persist">Escuchar</a></li>
+				<li><a href="#maps" data-icon="home" data-transition="flip" data-prefetch>Mapa</a></li>
+			</ul>
+		</div>
+	</div><!-- /footer -->
+</div><!-- /page main -->
+
+<div data-role="page" id="maps">
+
+	<div data-role="header" data-position="fixed">
+		<h1>RadioVirtual</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">
+		<div class="ui-body">
+			<h1>Nuestra ubicacion</h1>
+			<a href="#" data-role="button" onclick="showRadioMap();">Ver mapa</a>
+			<div id="map" style="width: 320px; height: 320px"></div>
+		</div><!-- /themed container -->
+	</div><!-- /content -->
+
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar">
+			<ul>
+				<li><a href="#main" data-icon="grid" data-transition="flip" data-prefetch data-direction="reverse">Escuchar</a></li>
+				<li><a href="#maps" data-icon="home" data-transition="flip" data-prefetch class="ui-btn-active ui-state-persist">Mapa</a></li>
+			</ul>
+		</div>
+	</div>
+
+</div><!-- /page maps -->
+
+
+</body>
+</html>
